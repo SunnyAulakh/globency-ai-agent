@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { convertToModelMessages, streamText } from 'ai';
+import { streamText, convertToCoreMessages } from 'ai';
 
 export const maxDuration = 30;
 
@@ -23,11 +23,12 @@ export async function POST(req: Request) {
         3. Web Development & UI/UX (Custom high-converting landing pages, e-commerce, web applications).
         4. Branding & Content Creation (Personal branding strategies, visual design, content creation).
       `,
-      // FIXED: Convert UI messages to Model messages for AI SDK v5
-      messages: convertToModelMessages(messages),
+      // FIXED: Convert frontend UI messages into the exact Core Message format the SDK expects
+      messages: convertToCoreMessages(messages),
     });
 
-    return result.toTextStreamResponse();
+    // FIXED: Use Data Stream Response to perfectly sync with useChat()
+    return result.toDataStreamResponse();
   } catch (error) {
     console.error('Chat API Error:', error);
     return new Response(JSON.stringify({ error: 'Failed to generate response' }), {
