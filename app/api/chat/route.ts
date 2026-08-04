@@ -7,7 +7,8 @@ export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
 
-    const result = streamText({
+    // FIXED: Added the 'await' keyword here so the server waits for the AI model connection
+    const result = await streamText({
       model: google('gemini-1.5-flash'),
       system: `
         [SYSTEM ROLE]
@@ -23,11 +24,9 @@ export async function POST(req: Request) {
         3. Web Development & UI/UX (Custom high-converting landing pages, e-commerce, web applications).
         4. Branding & Content Creation (Personal branding strategies, visual design, content creation).
       `,
-      // FIXED: Convert frontend UI messages into the exact Core Message format the SDK expects
       messages: convertToCoreMessages(messages),
     });
 
-    // FIXED: Use Data Stream Response to perfectly sync with useChat()
     return result.toDataStreamResponse();
   } catch (error) {
     console.error('Chat API Error:', error);
