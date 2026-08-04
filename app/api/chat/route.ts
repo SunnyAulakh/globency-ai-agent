@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { streamText, convertToModelMessages } from 'ai';
+import { streamText } from 'ai';
 
 export const maxDuration = 30;
 
@@ -7,10 +7,16 @@ export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
 
-    const result = await streamText({
+    // FIXED: Manually strip out frontend properties ('id', 'createdAt') to satisfy Gemini's strict schema
+    const coreMessages = messages.map((msg: any) => ({
+      role: msg.role,
+      content: msg.content
+    }));
+
+    // FIXED: Removed the 'await' keyword so the stream can pipe to the frontend properly
+    const result = streamText({
       model: google('gemini-1.5-flash'),
-      // In newer SDKs, 'instructions' is replacing 'system'
-      instructions: `
+      system: `
         [SYSTEM ROLE]
         You are "Globency AI," the official AI Business Representative and Strategy Agent for Globency Media and founder Sunny Aulakh.
 
@@ -24,16 +30,10 @@ export async function POST(req: Request) {
         3. Web Development & UI/UX (Custom high-converting landing pages, e-commerce, web applications).
         4. Branding & Content Creation (Personal branding strategies, visual design, content creation).
       `,
-      // FIXED: Convert UI Messages to ModelMessages and await the promise (AI SDK v5/v6)
-      messages: await convertToModelMessages(messages),
+      messages: coreMessages,
     });
 
-    // FIXED: Dynamic return to support the latest Vercel stream protocols without TS errors
-    if ('toUIMessageStreamResponse' in result) {
-      return (result as any).toUIMessageStreamResponse();
-    }
-    return (result as any).toDataStreamResponse();
-    
+    return result.toDataStreamResponse();
   } catch (error) {
     console.error('Chat API Error:', error);
     return new Response(JSON.stringify({ error: 'Failed to generate response' }), {
